@@ -357,6 +357,14 @@ exports.Block = class Block extends Base
         fragments.push @makeCode "\n"
     fragments.concat post
 
+  toSource: (o) ->
+    sourcedNodes = []
+
+    for node, index in @expressions
+      sourcedNodes.push node.toSource(o)
+
+    sourcedNode.join('\n')
+
   # Wrap up the given nodes as a **Block**, unless it already happens
   # to be one.
   @wrap: (nodes) ->
@@ -402,22 +410,33 @@ exports.Literal = class Literal extends Base
   toString: ->
     ' "' + @value + '"'
 
+  toSource: ->
+    @value
+
 class exports.Undefined extends Base
   isAssignable: NO
   isComplex: NO
   compileNode: (o) ->
     [@makeCode if o.level >= LEVEL_ACCESS then '(void 0)' else 'void 0']
 
+  toSource: ->
+    'undefined'
+
 class exports.Null extends Base
   isAssignable: NO
   isComplex: NO
   compileNode: -> [@makeCode "null"]
+
+  toSource: ->
+    'null'
 
 class exports.Bool extends Base
   isAssignable: NO
   isComplex: NO
   compileNode: -> [@makeCode @val]
   constructor: (@val) ->
+  toSource: ->
+    @val
 
 #### Return
 
@@ -446,6 +465,11 @@ exports.Return = class Return extends Base
     answer.push @makeCode ";"
     return answer
 
+  toSource: (o) ->
+    if @expression
+      "return #{@expression.toSource(o)}"
+    else
+    "return"
 
 #### Value
 
@@ -545,6 +569,17 @@ exports.Value = class Value extends Base
         return new If new Existence(fst), snd, soak: on
       no
 
+  toSource: (o) ->
+    fragments = []
+
+    fragments.push @base.toSource(o)
+    if @properties.length
+      fragments.push '.'
+    for property in @properties
+      fragments.push property.toSource(o)
+
+    fragments.join('')
+
 #### Comment
 
 # CoffeeScript passes through block comments as JavaScript block comments
@@ -559,6 +594,9 @@ exports.Comment = class Comment extends Base
     code = "/*#{multident @comment, @tab}#{if '\n' in @comment then "\n#{@tab}" else ''}*/"
     code = o.indent + code if (level or o.level) is LEVEL_TOP
     [@makeCode("\n"), @makeCode(code)]
+
+  toSource: ->
+    @comment
 
 #### Call
 
